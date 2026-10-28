@@ -390,7 +390,7 @@ async function showGreeting() {
     }
     await sleep(300);
   }
-  await sleep(1400);
+  await sleep(500);
 }
 
 /* ---------- 魔术：一堆小窗口错位叠加画出星星 ---------- */
@@ -473,7 +473,7 @@ async function doMagic() {
     }
     requestAnimationFrame(frame);
   });
-  await sleep(1400);
+  await sleep(350);
   // 金色星星：一层层错位叠上来，做出和窗口带一样的"叠层"立体感
   const fp = starPoints(cx, cy, R * 0.9);
   const starPath = (dx, dy) => { c.beginPath(); fp.forEach(([x, y], i) => i ? c.lineTo(x + dx, y + dy) : c.moveTo(x + dx, y + dy)); c.closePath(); };
@@ -492,7 +492,7 @@ async function doMagic() {
       c.restore();
       starPath(0, 0); c.strokeStyle = "#8a5a00"; c.lineWidth = 1.5; c.stroke();
     }
-    if (i % 2 === 0) { Music.chime(layers - i >> 1, .05); await sleep(150); }
+    if (i % 2 === 0) { Music.chime(layers - i >> 1, .05); await sleep(90); }
   }
   await sleep(1600);
 }
