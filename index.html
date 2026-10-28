@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>给十年后的我</title>
+<style>
+  :root {
+    --desk: #1f968f;
+    --face: #c3c3c3;
+    --light: #ffffff;
+    --shadow: #808080;
+    --dark: #000000;
+    --title1: #000080;
+    --title2: #1084d0;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+  body {
+    font-family: "Zpix", "SimSun", "宋体", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 15px; color: #000;
+    -webkit-font-smoothing: none;
+  }
+  #screen { position: fixed; inset: 0; background: var(--desk); overflow: hidden; transition: background 1.5s; }
+  #screen.night { background: #000; }
+  #screen::after { /* 显示器的轻微扫描线 + 暗角 */
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 9999;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.28) 100%);
+  }
+  #stars { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
+  #stars.on { display: block; }
+  #magic { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; transition: opacity 1.2s; }
+  #dim { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 80; transition: opacity 2s ease-in; }
+  #dim.on { opacity: 1; }
+
+  /* 桌面图标 */
+  #icons { position: absolute; left: 6px; top: 10px; display: flex; flex-direction: column; gap: 14px; z-index: 1; transition: opacity .3s; }
+  .icon { width: 64px; text-align: center; color: #fff; font-size: 12px; text-shadow: 1px 1px 0 rgba(0,0,0,.4); }
+  .icon svg { display: block; margin: 0 auto 4px; width: 32px; height: 32px; image-rendering: pixelated; }
+  #file { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); z-index: 2; cursor: pointer; width: 96px; }
+  #file span { padding: 1px 3px; }
+  #file.sel span { background: var(--title1); outline: 1px dotted #ff0; }
+  #file.sel svg { filter: sepia(1) hue-rotate(190deg) saturate(4) brightness(.7); }
+  #hint { position: absolute; left: 50%; top: calc(42% + 64px); transform: translateX(-50%); z-index: 2; pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; font-size: 18px; font-weight: bold; letter-spacing: 2px;
+    text-shadow: 2px 2px 0 rgba(0,0,0,.35); white-space: nowrap; }
+  #hint svg { width: 34px; height: 34px; animation: bounce .9s ease-in-out infinite; filter: drop-shadow(2px 2px 0 rgba(0,0,0,.35)); }
+  #hint span { animation: blink 1.6s ease-in-out infinite; }
+  @keyframes bounce { 50% { transform: translateY(-12px); } }
+  @keyframes blink { 50% { opacity: .35; } }
+
+  /* 任务栏 */
+  #taskbar {
+    position: absolute; left: 0; right: 0; bottom: 0; height: calc(32px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--face); border-top: 2px solid var(--light); display: flex; align-items: center; gap: 4px; padding-left: 3px; padding-right: 3px; z-index: 50;
+    transition: transform .6s;
+  }
+  #taskbar.hide { transform: translateY(110%); }
+  .tb-btn { height: 24px; display: flex; align-items: center; gap: 4px; padding: 0 6px; font-size: 13px; font-weight: bold; background: var(--face);
+    box-shadow: inset -1px -1px var(--dark), inset 1px 1px var(--light), inset -2px -2px var(--shadow), inset 2px 2px #dfdfdf; }
+  .tb-task { flex: 1; max-width: 150px; font-weight: normal; white-space: nowrap; overflow: hidden; visibility: hidden;
+    box-shadow: inset -1px -1px var(--light), inset 1px 1px var(--dark), inset -2px -2px #dfdfdf, inset 2px 2px var(--shadow); background: #dcdcdc; }
+  .tb-task.on { visibility: visible; }
+  #clock { margin-left: auto; height: 24px; padding: 0 8px; display: flex; align-items: center; font-size: 12px;
+    box-shadow: inset -1px -1px var(--light), inset 1px 1px var(--shadow); }
+
+  /* 音乐开关 */
+  #mute { position: absolute; right: 10px; top: calc(10px + env(safe-area-inset-top)); z-index: 90; width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(0,0,0,.25); color: #fff; font-size: 17px; line-height: 34px; text-align: center; display: none; }
+  #mute.on { display: block; }
+  #mute.spin span { display: inline-block; animation: spin 4s linear infinite; }
+  #mute.off { opacity: .5; }
+  #mute.off::after { content: ""; position: absolute; left: 7px; right: 7px; top: 16px; height: 2px; background: #fff; transform: rotate(-45deg); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Win98 窗口 */
+  .win {
+    position: absolute; background: var(--face); padding: 3px; z-index: 10;
+    box-shadow: inset -1px -1px var(--dark), inset 1px 1px #dfdfdf, inset -2px -2px var(--shadow), inset 2px 2px var(--light), 3px 3px 0 rgba(0,0,0,.18);
+    animation: pop .12s steps(2);
+  }
+  @keyframes pop { from { transform: scale(.85); opacity: 0; } }
+  .bar { height: 20px; background: linear-gradient(90deg, var(--title1), var(--title2)); color: #fff; font-size: 13px; font-weight: bold;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 2px 0 4px; white-space: nowrap; overflow: hidden; }
+  .bar span:first-child { overflow: hidden; text-overflow: clip; min-width: 0; }
+  .bar .x { width: 16px; height: 14px; background: var(--face); color: #000; font-size: 11px; line-height: 13px; text-align: center; font-family: Arial, sans-serif;
+    box-shadow: inset -1px -1px var(--dark), inset 1px 1px var(--light), inset -2px -2px var(--shadow); flex: none; margin-left: 6px; }
+  .body { display: flex; align-items: center; gap: 14px; padding: 14px 16px 6px; }
+  .body svg { flex: none; width: 42px; height: 42px; }
+  .msg { font-size: 18px; line-height: 1.55; white-space: pre-line; }
+  .btns { display: flex; justify-content: center; gap: 12px; padding: 10px 12px 10px; }
+  .btn { min-width: 92px; height: 36px; font: inherit; font-size: 17px; background: var(--face); border: 0; padding: 0 14px; color: #000;
+    box-shadow: inset -1px -1px var(--dark), inset 1px 1px var(--light), inset -2px -2px var(--shadow), inset 2px 2px #dfdfdf; }
+  .btn:first-child { outline: 1px dotted #000; outline-offset: -5px; }
+  .btn:active { box-shadow: inset 1px 1px var(--dark), inset -1px -1px var(--light), inset 2px 2px var(--shadow), inset -2px -2px #dfdfdf; padding-top: 2px; }
+  .win.small .body { padding: 6px 8px 2px; gap: 6px; }
+  .win.small .body svg { width: 20px; height: 20px; }
+  .win.small .msg { font-size: 12px; }
+  .win.small .bar { height: 16px; font-size: 11px; }
+  .win.small .btns { padding: 4px 6px 6px; }
+  .win.small .btn { min-width: 50px; height: 20px; font-size: 11px; padding: 0 6px; }
+  .win.small .btn:first-child { outline-offset: -4px; }
+  .pix { padding: 4px; background: #fff; box-shadow: inset 1px 1px var(--shadow), inset -1px -1px var(--light); }
+  .pix canvas { display: block; }
+
+  .tip { position: absolute; z-index: 20; background: #ffffe1; border: 1px solid #000; padding: 4px 8px; font-size: 15px; white-space: nowrap; box-shadow: 2px 2px 0 rgba(0,0,0,.2); }
+
+  #replay { position: absolute; left: 50%; bottom: calc(40px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; color: rgba(255,255,255,.75);
+    font-size: 13px; letter-spacing: 1px; opacity: 0; transition: opacity 2s; pointer-events: none; text-align: center; white-space: nowrap; }
+  #replay.on { opacity: 1; pointer-events: auto; }
+  #replay u { text-underline-offset: 4px; }
+</style>
+</head>
+<body>
+<div id="screen">
+  <canvas id="stars"></canvas>
+  <div id="icons"></div>
+  <div id="file" class="icon"></div>
+  <div id="hint">
+    <svg viewBox="0 0 16 16" shape-rendering="crispEdges"><path d="M8 1L15 8H11V15H5V8H1Z" fill="#fff" stroke="#000" stroke-width="1"/></svg>
+    <span>点这里打开</span>
+  </div>
+  <canvas id="magic"></canvas>
+  <div id="taskbar">
+    <div class="tb-btn"><svg width="16" height="14" viewBox="0 0 16 14"><rect x="0" y="0" width="7" height="6" fill="#e33"/><rect x="8" y="0" width="7" height="6" fill="#3b3"/><rect x="0" y="7" width="7" height="6" fill="#36e"/><rect x="8" y="7" width="7" height="6" fill="#fc0"/></svg>开始</div>
+    <div class="tb-btn tb-task" id="task">给十年后的我</div>
+    <div id="clock"></div>
+  </div>
+  <div id="dim"></div>
+  <div id="mute"><span>♪</span></div>
+  <div id="replay">— 来自 12 岁的你 —<br><br><u>再看一遍</u></div>
+</div>
+
+<script>
+/* ===================== 文案：想改内容只改这里 ===================== */
+const STORY = {
+  author: "12岁的我",
+  fileName: "给十年后的我.vbs",
+  bgm: "",            // 想用自己的音乐：把 mp3 放在同目录，这里填文件名，如 "bgm.mp3"；留空则用内置八音盒
+  greeting: ["你好啊", "未来的我"],
+  intro: "我是12岁的你！\n这个程序我偷偷写了好久!!",
+  questions: [
+    { q: "你现在有自己的小狗了吗?", yes: "哇!!它叫什么名字呀!!", no: "没关系！\n我先替你想好名字了：豆豆！" },
+    { q: "你是不是可以\n天天喝汽水了?", yes: "大人真好!!\n（不过别喝太多哦）", no: "啊?? 那长大有什么用啦!" },
+    { q: "你有自己的望远镜了吗?", yes: "太酷了吧!!\n记得帮我看看土星环!", no: "哼～\n那我先帮你攒着零花钱!" },
+    { q: "你还和同桌\n每天一起回家吗?", yes: "太好啦!!\n我们说好要做一辈子朋友的!", no: "那你记得给同桌\n打个电话呀!" },
+  ],
+  last: { q: "那你现在开心吗?", a: "开心", b: "不太开心" },
+  lastYes: "太好啦！\n那我变个魔术奖励你！",
+  lastNo: "别不开心嘛！\n我给你变个魔术！",
+  magicBtn: "好呀",
+  magicWin: "魔术", magicText: "看好啦",
+  magicTips: ["猜猜我在画什么?", "嘿嘿 别急哦～", "马上就好啦!"],
+  starGift: "当当当！\n☆送你一颗星星☆",
+  // 弹窗雨：按顺序弹出，从日常叮嘱慢慢走到心里话
+  rain: [
+    "要按时吃饭!", "不许熬夜!", "多喝热水!", "下雨记得带伞!", "(^o^)/", "天冷加衣服!",
+    "别挑食!", "别老玩手机!", "★★★", "考试加油!", "你超厉害的!", "要多笑一笑!",
+    "累了就睡一觉!", "记得去看海!", "(*^▽^*)", "我相信你!", "想哭就哭一下", "然后再笑一下",
+    "要对自己好一点!", "记得给爸妈打电话", "有我在呢!",
+  ],
+  rainBig: ["不开心就去喝汽水!", "累了就回家看看", "长大了也要\n常常回家吃饭哦", "同桌说\n要一直做好朋友!"],
+  rainLast: "我会一直在这里\n等你回来看我",
+  lightsOff: "最后再送你一片星空！\n我们先把灯关掉～",
+  lightsBtn: "关灯",
+  ending: "没有望远镜也没关系\n抬头就能看星星呀",
+  endingBtn: "好",
+};
+/* ================================================================ */
+
+const $ = s => document.querySelector(s);
+const screenEl = $("#screen");
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const W = () => screenEl.clientWidth, H = () => screenEl.clientHeight;
+const midiHz = m => 440 * Math.pow(2, (m - 69) / 12);
+
+/* ---------- 声音 ---------- */
+let ac;
+const audio = () => (ac = ac || new (window.AudioContext || window.webkitAudioContext)());
+
+// 仿 Win98 提示音（比背景音乐轻）
+function ding(kind = "ding") {
+  try {
+    const a = audio(), t = a.currentTime;
+    const notes = kind === "pop" ? [[880, 0, .05]] : [[660, 0, .09], [990, .07, .18]];
+    const vol = kind === "pop" ? .025 : .045;
+    notes.forEach(([f, s, d]) => {
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = "triangle"; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t + s); g.gain.linearRampToValueAtTime(vol, t + s + .01); g.gain.exponentialRampToValueAtTime(.0001, t + s + d);
+      o.connect(g).connect(a.destination); o.start(t + s); o.stop(t + s + d + .02);
+    });
+  } catch (e) {}
+}
+
+// 背景音乐：原创八音盒旋律，慢速，带混响和一点"旧磁带"走音
+const Music = {
+  on: false, muted: false, level: .34,
+  start() {
+    if (this.on) return;
+    this.on = true;
+    $("#mute").classList.add("on", "spin");
+    if (STORY.bgm) {
+      this.el = new Audio(STORY.bgm); this.el.loop = true; this.el.volume = .7;
+      this.el.play().catch(() => {});
+      return;
+    }
+    const a = audio();
+    this.master = a.createGain(); this.master.gain.value = 0;
+    const lp = a.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 3200;
+    this.master.connect(lp).connect(a.destination);
+    // 用衰减噪声生成混响
+    const len = a.sampleRate * 3.2, ir = a.createBuffer(2, len, a.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+    this.verb = a.createConvolver(); this.verb.buffer = ir;
+    const wet = a.createGain(); wet.gain.value = .55;
+    this.verb.connect(wet).connect(this.master);
+    this.dry = a.createGain(); this.dry.gain.value = .8; this.dry.connect(this.master);
+    this.setLevel(this.level, 2.5);
+    this.t0 = a.currentTime + .15; this.step = 0;
+    this.timer = setInterval(() => this.schedule(), 90);
+  },
+  setLevel(v, sec = 2) {
+    this.level = v;
+    if (this.el) { this.el.volume = this.muted ? 0 : Math.min(1, v * 2); return; }
+    if (!this.master) return;
+    const g = this.master.gain, t = ac.currentTime;
+    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(this.muted ? 0 : v, t + sec);
+  },
+  toggle() {
+    this.muted = !this.muted;
+    $("#mute").classList.toggle("off", this.muted); $("#mute").classList.toggle("spin", !this.muted);
+    this.setLevel(this.level, .3);
+  },
+  // 8 小节一循环：F  G  Em7  Am7  Dm7  G  Cmaj7  C
+  chords: [[53,57,60,64],[55,59,62,67],[52,55,59,62],[57,60,64,67],[50,53,57,60],[55,59,62,65],[48,52,55,59],[48,52,55,60]],
+  // 旋律：[音高, 起拍, 时值]（单位：拍）
+  melody: [
+    [[72,0,1.5],[69,1.5,.5],[72,2,1],[74,3,1]],
+    [[71,0,2],[67,2,2]],
+    [[71,0,1.5],[72,1.5,.5],[74,2,1],[76,3,1]],
+    [[72,0,3],[69,3,1]],
+    [[69,0,1.5],[72,1.5,.5],[77,2,1.5],[76,3.5,.5]],
+    [[74,0,2],[71,2,1],[74,3,1]],
+    [[76,0,1.5],[74,1.5,.5],[72,2,2]],
+    [[67,0,2],[72,2,2]],
+  ],
+  arp: [0, 2, 1, 3, 2, 1, 2, 3],
+  schedule() {
+    const e = 60 / 66 / 2; // 八分音符时长（66 BPM）
+    while (this.t0 + this.step * e < ac.currentTime + .5) {
+      const t = this.t0 + this.step * e, s = this.step % 8, bar = (this.step / 8 | 0) % 8, loop = this.step / 64 | 0;
+      const ch = this.chords[bar];
+      if (s === 0) this.bass(ch[0] - 12, t, e * 8);
+      this.box(ch[this.arp[s]] + 12, t, .045);
+      if (loop > 0 || bar > 1) // 前两小节只有伴奏，慢慢进
+        for (const [m, st, d] of this.melody[bar]) if (st * 2 === s) this.box(m + 12 * (loop % 3 === 2), t, .11, d * 2 * e);
+      this.step++;
+    }
+  },
+  box(m, t, vol, dur = .3) {
+    const a = ac, g = a.createGain(), wob = Math.sin(t * .8) * 9; // 旧磁带的轻微走音
+    [[1, 1], [2, .18], [3, .06]].forEach(([h, v]) => {
+      const o = a.createOscillator(), og = a.createGain();
+      o.type = "sine"; o.frequency.value = midiHz(m) * h; o.detune.value = wob;
+      og.gain.value = v; o.connect(og).connect(g); o.start(t); o.stop(t + dur + 2.2);
+    });
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .006); g.gain.exponentialRampToValueAtTime(.0005, t + Math.max(1.4, dur + 1.2));
+    g.connect(this.dry); g.connect(this.verb);
+  },
+  bass(m, t, dur) {
+    const a = ac, o = a.createOscillator(), g = a.createGain();
+    o.type = "triangle"; o.frequency.value = midiHz(m);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.07, t + .25); g.gain.linearRampToValueAtTime(.0001, t + dur);
+    o.connect(g); g.connect(this.dry); g.connect(this.verb); o.start(t); o.stop(t + dur + .1);
+  },
+  // 和旋律同调的单音，弹窗雨/叠星星时用
+  chime(i, vol = .07) {
+    if (!this.master || this.muted) return ding("pop");
+    const scale = [72, 74, 76, 79, 81, 84, 86, 88];
+    this.box(scale[i % scale.length], ac.currentTime + .01, vol);
+  },
+};
+$("#mute").onclick = () => Music.toggle();
+
+/* ---------- 像素图标 ---------- */
+const ICON = {
+  info: `<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><circle cx="16" cy="16" r="14" fill="#1a4fd6" stroke="#0a2c80" stroke-width="2"/><circle cx="12" cy="11" r="4" fill="#6f9cff" opacity=".6"/><rect x="14" y="7" width="4" height="4" fill="#fff"/><rect x="14" y="13" width="4" height="12" fill="#fff"/><rect x="12" y="13" width="2" height="2" fill="#fff"/><rect x="12" y="23" width="8" height="2" fill="#fff"/></svg>`,
+  question: `<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><circle cx="16" cy="16" r="14" fill="#1a4fd6" stroke="#0a2c80" stroke-width="2"/><circle cx="12" cy="11" r="4" fill="#6f9cff" opacity=".6"/><path d="M11 9h10v2h2v5h-2v2h-3v3h-4v-5h3v-2h2v-3h-4v2h-4z" fill="#fff"/><rect x="14" y="23" width="4" height="3" fill="#fff"/></svg>`,
+  warn: `<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="M16 3L30 29H2z" fill="#ffd400" stroke="#000" stroke-width="2" stroke-linejoin="round"/><rect x="14" y="11" width="4" height="10" fill="#000"/><rect x="14" y="23" width="4" height="3" fill="#000"/></svg>`,
+  heart: `<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="M16 28L4 16C0 12 2 4 9 4c3 0 5 2 7 4 2-2 4-4 7-4 7 0 9 8 5 12z" fill="#ff4f7b" stroke="#a0123a" stroke-width="2"/><rect x="8" y="8" width="4" height="3" fill="#fff" opacity=".7"/></svg>`,
+  star: `<svg viewBox="0 0 32 32"><path d="M16 2l4.2 9 9.8 1.2-7.2 6.8 1.9 9.8L16 24l-8.7 4.8 1.9-9.8L2 12.2 11.8 11z" fill="#ffd23f" stroke="#b07a00" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
+};
+const DESK_ICON = {
+  pc: `<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="4" y="3" width="24" height="18" fill="#ddd" stroke="#333"/><rect x="7" y="6" width="18" height="12" fill="#1f6fbf"/><rect x="12" y="21" width="8" height="4" fill="#bbb"/><rect x="7" y="25" width="18" height="4" fill="#ddd" stroke="#333"/></svg>`,
+  folder: `<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="M2 8h11l3 3h14v17H2z" fill="#f5c542" stroke="#8a6a00"/><rect x="2" y="13" width="28" height="15" fill="#ffd95a" stroke="#8a6a00"/></svg>`,
+  bin: `<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><rect x="7" y="9" width="18" height="20" fill="#e8e8e8" stroke="#444"/><rect x="5" y="6" width="22" height="3" fill="#ccc" stroke="#444"/><path d="M11 12v14M16 12v14M21 12v14" stroke="#888"/></svg>`,
+  doc: `<svg viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="M6 2h14l6 6v22H6z" fill="#fff" stroke="#333"/><path d="M20 2v6h6" fill="#ddd" stroke="#333"/><path d="M9 12h12M9 16h14M9 20h10M9 24h13" stroke="#3a6fd8" stroke-width="1.5"/><rect x="9" y="5" width="6" height="3" fill="#e33"/></svg>`,
+};
+$("#icons").innerHTML = [["pc","我的电脑"],["folder","我的文档"],["bin","回收站"],["folder","作业"],["folder","小游戏"]]
+  .map(([k, n]) => `<div class="icon">${DESK_ICON[k]}${n}</div>`).join("");
+$("#file").innerHTML = `${DESK_ICON.doc}<span>${STORY.fileName}</span>`;
+
+function tick() {
+  const d = new Date(), h = d.getHours(), m = String(d.getMinutes()).padStart(2, "0");
+  $("#clock").textContent = `${h < 12 ? "上午" : "下午"} ${h % 12 || 12}:${m}`;
+}
+tick(); setInterval(tick, 10000);
+
+/* ---------- 窗口 ---------- */
+function makeWin({ title = STORY.author, icon, text = "", html, buttons = [], x, y, small = false, z }) {
+  const el = document.createElement("div");
+  el.className = "win" + (small ? " small" : "");
+  el.innerHTML = `<div class="bar"><span>${title}</span><span class="x">✕</span></div>` +
+    (html ?? `<div class="body">${icon ? ICON[icon] : ""}<div class="msg"></div></div>`) +
+    (buttons.length ? `<div class="btns">${buttons.map(b => `<button class="btn">${b}</button>`).join("")}</div>` : "");
+  if (!html) el.querySelector(".msg").textContent = text;
+  el.style.visibility = "hidden";
+  if (z) el.style.zIndex = z;
+  screenEl.appendChild(el);
+  const w = el.offsetWidth, h = el.offsetHeight;
+  el.style.left = (x ?? (W() - w) / 2) + "px";
+  el.style.top = (y ?? (H() - h) / 2 - 20) + "px";
+  el.style.visibility = "";
+  return el;
+}
+// 按字数估算阅读时间
+const readTime = text => 2600 + [...text].length * 120;
+// 弹一个对话框，返回点的按钮下标。auto=true 时不点也会在读完后自动往下走
+function ask(opts) {
+  return new Promise(res => {
+    ding();
+    const el = makeWin(opts);
+    let done = false;
+    const finish = i => { if (done) return; done = true; el.remove(); res(i); };
+    el.querySelectorAll(".btn").forEach((b, i) => b.onclick = () => finish(i));
+    el.querySelector(".x").onclick = () => finish(-1);
+    if (opts.auto) setTimeout(() => finish(0), opts.auto === true ? readTime(opts.text) : opts.auto);
+  });
+}
+const say = (text, more = {}) => ask({ icon: "info", text, buttons: ["确定"], auto: true, ...more });
+const clearWins = () => document.querySelectorAll(".win,.tip").forEach(e => e.remove());
+
+/* ---------- 像素大字窗口 ---------- */
+const PIX_COLORS = ["#f0563c", "#f39a2b", "#f2b81f", "#41b85a", "#3a9ee8", "#4a63d8", "#a456d6"];
+function pixelGlyph(ch, color, cell) {
+  // 先用大字号画，再按每格覆盖率降采样成 16×16 点阵，笔画更清楚
+  const N = 16, S = 8, src = document.createElement("canvas");
+  src.width = src.height = N * S;
+  const c = src.getContext("2d");
+  c.font = `${N * S * 0.94}px "SimSun","PingFang SC","Microsoft YaHei",sans-serif`;
+  c.textAlign = "center"; c.textBaseline = "middle";
+  c.fillText(ch, N * S / 2, N * S / 2 + S * 0.5);
+  const big = c.getImageData(0, 0, N * S, N * S).data;
+  const out = document.createElement("canvas");
+  const dpr = Math.min(devicePixelRatio || 1, 3);
+  out.width = out.height = N * cell * dpr;
+  out.style.width = out.style.height = N * cell + "px";
+  const o = out.getContext("2d");
+  o.scale(dpr, dpr);
+  for (let yy = 0; yy < N; yy++) for (let xx = 0; xx < N; xx++) {
+    let sum = 0;
+    for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) sum += big[((yy * S + j) * N * S + xx * S + i) * 4 + 3];
+    if (sum / (S * S) > 70) {
+      o.fillStyle = color; o.fillRect(xx * cell, yy * cell, cell - 1, cell - 1);
+      o.fillStyle = "rgba(255,255,255,.35)"; o.fillRect(xx * cell, yy * cell, cell - 1, 1);
+    }
+  }
+  return out;
+}
+async function showGreeting() {
+  const lines = STORY.greeting, maxLen = Math.max(...lines.map(l => [...l].length));
+  const winW = Math.min(96, (W() - 16) / maxLen);
+  const cell = Math.max(3, Math.floor((winW - 14) / 16));
+  const realW = cell * 16 + 14, gap = 4;
+  let ci = 0;
+  const top0 = H() * 0.2;
+  for (let r = 0; r < lines.length; r++) {
+    const chars = [...lines[r]];
+    const rowW = chars.length * realW + (chars.length - 1) * gap;
+    for (let i = 0; i < chars.length; i++) {
+      const el = makeWin({ title: STORY.fileName.replace(/\.\w+$/, ""), small: true, html: `<div class="pix"></div>`,
+        x: (W() - rowW) / 2 + i * (realW + gap) + (r ? 10 : 0), y: top0 + r * (cell * 16 + 34) + (r ? 14 : 0) });
+      el.querySelector(".pix").appendChild(pixelGlyph(chars[i], PIX_COLORS[ci % PIX_COLORS.length], cell));
+      Music.chime(ci++, .05);
+      await sleep(620);
+    }
+    await sleep(300);
+  }
+  await sleep(1400);
+}
+
+/* ---------- 魔术：一堆小窗口错位叠加画出星星 ---------- */
+function makeMagicSprite(scale) {
+  const w = 112 * scale, h = 52 * scale, s = document.createElement("canvas");
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  s.width = w * dpr; s.height = h * dpr;
+  const c = s.getContext("2d"); c.scale(dpr * scale, dpr * scale);
+  const W0 = 112, H0 = 52;
+  c.fillStyle = "#000"; c.fillRect(0, 0, W0, H0);
+  c.fillStyle = "#fff"; c.fillRect(0, 0, W0 - 1, H0 - 1);
+  c.fillStyle = "#808080"; c.fillRect(1, 1, W0 - 2, H0 - 2);
+  c.fillStyle = "#dfdfdf"; c.fillRect(1, 1, W0 - 3, H0 - 3);
+  c.fillStyle = "#c3c3c3"; c.fillRect(2, 2, W0 - 4, H0 - 4);
+  const g = c.createLinearGradient(3, 0, W0 - 3, 0); g.addColorStop(0, "#000080"); g.addColorStop(1, "#1084d0");
+  c.fillStyle = g; c.fillRect(3, 3, W0 - 6, 15);
+  c.fillStyle = "#fff"; c.font = 'bold 11px "SimSun","PingFang SC",sans-serif'; c.textBaseline = "middle"; c.fillText(STORY.magicWin, 7, 11);
+  c.fillStyle = "#c3c3c3"; c.fillRect(W0 - 18, 5, 13, 11); c.fillStyle = "#000"; c.font = "9px Arial"; c.fillText("✕", W0 - 15, 11);
+  c.font = "13px sans-serif"; c.fillText("⭐", 9, 34);
+  c.font = '13px "SimSun","PingFang SC",sans-serif'; c.fillText(STORY.magicText, 30, 34);
+  return { img: s, w, h };
+}
+function starPoints(cx, cy, R) {
+  // 一笔画五角星：顶点按 0,2,4,1,3,0 连
+  const pts = [];
+  for (let k = 0; k <= 5; k++) {
+    const a = (-90 + k * 144) * Math.PI / 180;
+    pts.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]);
+  }
+  return pts;
+}
+function tip(text, x, y) {
+  const t = document.createElement("div");
+  t.className = "tip"; t.textContent = text;
+  screenEl.appendChild(t);
+  t.style.left = Math.max(6, Math.min(W() - t.offsetWidth - 6, x)) + "px";
+  t.style.top = Math.max(6, y) + "px";
+  return t;
+}
+async function doMagic() {
+  const cv = $("#magic"), dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.style.opacity = 1;
+  cv.width = W() * dpr; cv.height = H() * dpr;
+  const c = cv.getContext("2d"); c.scale(dpr, dpr);
+  const scale = W() < 420 ? 0.82 : 1;
+  const sp = makeMagicSprite(scale);
+  const R = Math.min((W() - sp.w * 0.5) / 1.9, H() * 0.36);
+  const cx = W() / 2, cy = H() * 0.47 + R * 0.08;
+  const pts = starPoints(cx, cy, R);
+  const segs = []; let total = 0;
+  for (let i = 0; i < 5; i++) {
+    const [a, b] = [pts[i], pts[i + 1]], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    segs.push({ a, b, len, start: total }); total += len;
+  }
+  // 按时间推进（不受手机刷新率影响），一笔大约 14 秒画完；每层窗口错开 2.2px
+  const step = 2.2, duration = 14000;
+  const tips = STORY.magicTips.map((t, i) => [[0.12, 0.45, 0.8][i] ?? 0.9, t]);
+  let d = 0, last = pts[0], t0 = null, beat = 0;
+  await new Promise(done => {
+    function frame(now) {
+      t0 ??= now;
+      // 先慢后快再慢，像在认真地画
+      const p = Math.min(1, (now - t0) / duration), eased = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      const target = eased * total;
+      for (; d <= target; d += step) {
+        const s = segs.find(s => d <= s.start + s.len) || segs[4];
+        const t = (d - s.start) / s.len;
+        last = [s.a[0] + (s.b[0] - s.a[0]) * t, s.a[1] + (s.b[1] - s.a[1]) * t];
+        c.drawImage(sp.img, last[0] - sp.w / 2, last[1] - sp.h / 2, sp.w, sp.h);
+      }
+      // 每过一个尖角响一声
+      const corner = segs.findIndex(s => d <= s.start + s.len);
+      if (corner > beat) { beat = corner; Music.chime(corner + 2, .06); }
+      for (const tp of tips) if (!tp.done && p > tp[0]) {
+        tp.done = true; ding("pop");
+        const el = tip(tp[1], last[0] + sp.w / 2 + 4, last[1] - sp.h / 2 - 6);
+        setTimeout(() => el.remove(), 3200);
+      }
+      p < 1 ? requestAnimationFrame(frame) : done();
+    }
+    requestAnimationFrame(frame);
+  });
+  await sleep(1400);
+  // 金色星星：一层层错位叠上来，做出和窗口带一样的"叠层"立体感
+  const fp = starPoints(cx, cy, R * 0.9);
+  const starPath = (dx, dy) => { c.beginPath(); fp.forEach(([x, y], i) => i ? c.lineTo(x + dx, y + dy) : c.moveTo(x + dx, y + dy)); c.closePath(); };
+  const layers = 16;
+  for (let i = layers; i >= 0; i--) {
+    starPath(i * 1.2, i * 1.6);
+    if (i) {
+      c.fillStyle = i % 2 ? "#a8720a" : "#c38a14"; c.fill("nonzero");
+    } else {
+      const g = c.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+      g.addColorStop(0, "#fff6b8"); g.addColorStop(.45, "#f6c935"); g.addColorStop(1, "#d99a12");
+      c.fillStyle = g; c.fill("nonzero");
+      c.save(); c.clip("nonzero");
+      c.strokeStyle = "rgba(160,100,0,.22)"; c.lineWidth = 1;
+      for (let y = cy - R * 1.5; y < cy + R; y += 3) { c.beginPath(); c.moveTo(cx - R, y); c.lineTo(cx + R, y + R * 0.5); c.stroke(); }
+      c.restore();
+      starPath(0, 0); c.strokeStyle = "#8a5a00"; c.lineWidth = 1.5; c.stroke();
+    }
+    if (i % 2 === 0) { Music.chime(layers - i >> 1, .05); await sleep(150); }
+  }
+  await sleep(1600);
+}
+
+/* ---------- 弹窗雨：一个一个慢慢弹，越往后越走心 ---------- */
+async function popupRain() {
+  const icons = ["info", "info", "info", "warn", "heart", "star"];
+  const titles = [STORY.author, STORY.author, "提示", "小贴士"];
+  const seq = [];
+  STORY.rain.forEach((t, i) => {
+    seq.push({ t });
+    if (i % 5 === 4 && STORY.rainBig[seq.filter(s => s.big).length]) seq.push({ t: STORY.rainBig[seq.filter(s => s.big).length], big: true });
+  });
+  STORY.rainBig.slice(seq.filter(s => s.big).length).forEach(t => seq.push({ t, big: true }));
+  for (let i = 0; i < seq.length; i++) {
+    const { t, big } = seq[i];
+    const icon = big ? (i % 2 ? "heart" : "info") : icons[(Math.random() * icons.length) | 0];
+    const el = makeWin({ title: titles[i % titles.length], icon, text: t, buttons: ["确定"], small: !big, x: -999, y: -999 });
+    const w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = Math.random() * (W() - w + 30) - 15 + "px";
+    el.style.top = Math.random() * (H() - h - 40) + "px";
+    el.querySelector(".btn").onclick = () => el.remove();
+    Music.chime(i, big ? .08 : .05);
+    // 开头稍慢、越来越密，大窗口后稍停一下让人看清
+    await sleep(big ? 1300 : Math.max(380, 720 - i * 14));
+  }
+  await sleep(900);
+  const last = makeWin({ icon: "heart", text: STORY.rainLast, buttons: ["嗯"], z: 30 });
+  Music.chime(5, .09);
+  await new Promise(r => { last.querySelector(".btn").onclick = r; setTimeout(r, readTime(STORY.rainLast) + 1500); });
+}
+
+/* ---------- 窗口一个个关掉 ---------- */
+async function closeAllSlowly() {
+  const wins = [...document.querySelectorAll(".win")].reverse();
+  $("#magic").style.opacity = 0;   // 星星和窗口一起淡出
+  for (const [i, w] of wins.entries()) { w.remove(); if (i % 3 === 0) ding("pop"); await sleep(35); }
+  await sleep(300);
+  $("#magic").getContext("2d").clearRect(0, 0, 99999, 99999);
+}
+
+/* ---------- 星空 ---------- */
+let starAnim;
+function startStars() {
+  const cv = $("#stars"), dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.classList.add("on");
+  cv.width = W() * dpr; cv.height = H() * dpr;
+  const c = cv.getContext("2d"); c.scale(dpr, dpr);
+  const w = W(), h = H(), cx = w / 2, cy = h * .42, diag = Math.hypot(w, h);
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const tints = ["#ffffff", "#ffffff", "#ffffff", "#cfe0ff", "#fff1c9", "#ffd6ef"];
+  // 远处的满天小星星（整片天空缓缓转动）
+  const pivot = [w * .5, h * 1.6];
+  // 在比屏幕大一圈的范围里撒星（转动时边缘也不会空），换成绕 pivot 的极坐标
+  const field = Array.from({ length: Math.round(w * h / 300 * 2.6) }, () => {
+    const x = rand(-.4 * w, 1.4 * w), y = rand(-.5 * h, 1.1 * h);
+    const glow = Math.random() < .04;
+    return { r: Math.hypot(x - pivot[0], y - pivot[1]), a: Math.atan2(y - pivot[1], x - pivot[0]),
+      s: glow ? rand(1.6, 2.4) : rand(.4, 1.5), glow, tw: rand(.6, 3.2), ph: rand(0, 6.28), col: tints[(Math.random() * tints.length) | 0], t0: rand(.1, 2.5) };
+  });
+  // 会闪光的十字亮星
+  const sparkles = Array.from({ length: 26 }, () => ({ x: rand(0, w), y: rand(0, h), size: rand(3, 8), tw: rand(.5, 1.6), ph: rand(0, 6.28), t0: rand(.8, 3.5) }));
+  // 从深处飞出来的星星（拖着短尾巴）
+  const spawnFly = f => Object.assign(f, { a: rand(0, 6.283), r: rand(2, diag * .15), v: rand(10, 24), col: tints[(Math.random() * tints.length) | 0] });
+  const flyers = Array.from({ length: 140 }, () => { const f = spawnFly({}); f.r = rand(0, diag * .7); return f; });
+  // 星云
+  const nebulas = [[.25, .25, .55, "120,80,220"], [.8, .4, .5, "60,110,230"], [.4, .75, .6, "200,90,190"], [.7, .1, .35, "90,60,200"]];
+  let shoots = [], start = null, prev = null, firstShoot = false;
+
+  function frame(now) {
+    start ??= now; prev ??= now;
+    const t = (now - start) / 1000, dt = Math.min(.05, (now - prev) / 1000); prev = now;
+    const reveal = Math.min(1, t / 2.5);
+    c.globalAlpha = 1;
+    c.fillStyle = "#06051a"; c.fillRect(0, 0, w, h);
+    // 天空底色 + 星云，慢慢亮起来
+    c.globalAlpha = reveal;
+    const g = c.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, "#120c3a"); g.addColorStop(.55, "#2b1d6b"); g.addColorStop(1, "#4a2f86");
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+    for (const [nx, ny, nr, col] of nebulas) {
+      const x = nx * w + Math.sin(t * .05 + nx * 9) * 20, y = ny * h + Math.cos(t * .04 + ny * 7) * 20, r = nr * diag;
+      const ng = c.createRadialGradient(x, y, 0, x, y, r);
+      ng.addColorStop(0, `rgba(${col},.32)`); ng.addColorStop(1, `rgba(${col},0)`);
+      c.fillStyle = ng; c.fillRect(0, 0, w, h);
+    }
+    // 满天星：缓缓转动 + 各自闪烁
+    const rot = t * .009;
+    for (const s of field) {
+      const fade = Math.min(1, Math.max(0, (t - s.t0) / 1.5));
+      if (!fade) continue;
+      const a = s.a + rot, x = pivot[0] + Math.cos(a) * s.r, y = pivot[1] + Math.sin(a) * s.r;
+      if (x < -2 || x > w + 2 || y < -2 || y > h + 2) continue;
+      c.globalAlpha = fade * (.35 + .65 * Math.abs(Math.sin(t * s.tw + s.ph)));
+      c.fillStyle = s.col; c.fillRect(x, y, s.s, s.s);
+      if (s.glow) { c.globalAlpha *= .25; c.beginPath(); c.arc(x + 1, y + 1, s.s * 2.6, 0, 6.283); c.fill(); }
+    }
+    // 飞出来的星星
+    if (t > 1) for (const f of flyers) {
+      f.v += dt * f.r * .03; f.r += f.v * dt;
+      const x = cx + Math.cos(f.a) * f.r, y = cy + Math.sin(f.a) * f.r;
+      if (x < -20 || x > w + 20 || y < -20 || y > h + 20) { spawnFly(f); continue; }
+      const tail = Math.min(26, f.v * .18), k = Math.min(1, f.r / (diag * .35));
+      c.globalAlpha = Math.min(1, (t - 1) / 1.5) * (.15 + .75 * k);
+      c.strokeStyle = f.col; c.lineWidth = .6 + k * 1.4;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x - Math.cos(f.a) * tail, y - Math.sin(f.a) * tail); c.stroke();
+    }
+    // 十字亮星
+    for (const s of sparkles) {
+      const fade = Math.min(1, Math.max(0, (t - s.t0) / 2));
+      if (!fade) continue;
+      const k = .5 + .5 * Math.sin(t * s.tw * 2 + s.ph), L = s.size * (.6 + .8 * k);
+      c.globalAlpha = fade * (.4 + .6 * k);
+      c.fillStyle = "#fff";
+      c.fillRect(s.x - L, s.y - .5, L * 2, 1); c.fillRect(s.x - .5, s.y - L, 1, L * 2);
+      c.fillRect(s.x - 1, s.y - 1, 2, 2);
+      const halo = c.createRadialGradient(s.x, s.y, 0, s.x, s.y, L * 1.3);
+      halo.addColorStop(0, "rgba(220,210,255,.5)"); halo.addColorStop(1, "rgba(220,210,255,0)");
+      c.fillStyle = halo; c.fillRect(s.x - L * 1.3, s.y - L * 1.3, L * 2.6, L * 2.6);
+    }
+    // 流星
+    // 第一颗流星 1.8 秒就来，之后大约每 1.5 秒一颗
+    if (t > 1.8 && !firstShoot) { firstShoot = true; shoots.push({ x: w * .85, y: h * .12, l: 0, sp: 650 }); }
+    if (t > 2.5 && Math.random() < .011) shoots.push({ x: rand(w * .1, w * 1.1), y: rand(-20, h * .45), l: 0, sp: rand(560, 820) });
+    shoots = shoots.filter(s => {
+      s.l += s.sp * dt;
+      const life = s.l / 420; if (life > 1) return false;
+      const hx = s.x - s.l * .8, hy = s.y + s.l * .55;
+      const sg = c.createLinearGradient(hx, hy, hx + 70, hy - 48);
+      sg.addColorStop(0, "rgba(255,255,255,.95)"); sg.addColorStop(1, "rgba(255,255,255,0)");
+      c.globalAlpha = 1 - life; c.strokeStyle = sg; c.lineWidth = 1.6;
+      c.beginPath(); c.moveTo(hx, hy); c.lineTo(hx + 70, hy - 48); c.stroke();
+      return true;
+    });
+    c.globalAlpha = 1;
+    starAnim = requestAnimationFrame(frame);
+  }
+  starAnim = requestAnimationFrame(frame);
+}
+
+/* ---------- 主流程 ---------- */
+let running = false;
+async function play() {
+  if (running) return; running = true;
+  $("#hint").style.display = "none";
+  $("#task").classList.add("on");
+  await sleep(600);
+
+  await showGreeting();
+  await ask({ title: STORY.author + " 出品", icon: "info", text: STORY.intro, buttons: ["确定"], z: 30, auto: true });
+  clearWins();
+  await sleep(500);
+
+  const total = STORY.questions.length + 1;
+  for (let i = 0; i < STORY.questions.length; i++) {
+    const q = STORY.questions[i];
+    const r = await ask({ title: `第${i + 1}题（共${total}题）`, icon: "question", text: q.q, buttons: ["是", "否"] });
+    await sleep(250);
+    await say(r === 0 ? q.yes : q.no);
+    await sleep(350);
+  }
+  const happy = await ask({ title: `第${total}题（共${total}题）`, icon: "question", text: STORY.last.q, buttons: [STORY.last.a, STORY.last.b] });
+  await sleep(300);
+  await say(happy === 0 ? STORY.lastYes : STORY.lastNo, { buttons: [STORY.magicBtn] });
+  await sleep(800);
+
+  await doMagic();
+  await say(STORY.starGift, { icon: "star", z: 30 });
+  await sleep(600);
+
+  await popupRain();
+  await closeAllSlowly();          // 窗口快速一个个关掉，星星淡出
+  await sleep(250);
+
+  await say(STORY.lightsOff, { buttons: [STORY.lightsBtn] });
+  Music.setLevel(.18, 1.5);        // 关灯时音乐压低
+  $("#dim").style.transitionDuration = "1.2s";
+  $("#dim").classList.add("on");
+  await sleep(1250);
+  // 在黑幕下面瞬间藏好桌面（不走过渡动画，否则撤黑幕时会闪一下桌面）
+  const hideNow = [$("#icons"), $("#file"), $("#taskbar"), screenEl];
+  hideNow.forEach(el => el.style.transition = "none");
+  $("#icons").style.opacity = 0; $("#file").style.opacity = 0;
+  $("#taskbar").classList.add("hide");
+  screenEl.classList.add("night");
+  startStars();                    // 星空从全黑里一颗颗亮起来
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));  // 等星空画出第一帧
+  $("#dim").style.transition = "none"; $("#dim").classList.remove("on");
+  await sleep(50);
+  $("#dim").style.transition = ""; hideNow.forEach(el => el.style.transition = "");
+  Music.setLevel(.42, 3.5);        // 星星亮起来时音乐慢慢回来
+  await sleep(3800);
+  await ask({ icon: "heart", text: STORY.ending, buttons: [STORY.endingBtn], auto: 14000 });
+  await sleep(2500);
+  $("#replay").classList.add("on");
+}
+
+function reset() {
+  cancelAnimationFrame(starAnim);
+  clearWins();
+  $("#stars").classList.remove("on");
+  $("#replay").classList.remove("on");
+  screenEl.classList.remove("night");
+  $("#icons").style.opacity = 1; $("#file").style.opacity = 1; $("#file").classList.remove("sel");
+  $("#taskbar").classList.remove("hide");
+  $("#task").classList.remove("on");
+  $("#hint").style.display = "";
+  Music.setLevel(.34, 1);
+  running = false;
+}
+
+$("#file").onclick = () => {
+  if (running) return;
+  $("#file").classList.add("sel");
+  ding("pop");
+  Music.start();   // 必须在点击里直接开始，微信/iOS 才允许出声
+  setTimeout(play, 350);
+};
+$("#replay").onclick = reset;
+
+// 一打开就放音乐：先把音乐排好（浏览器没允许前是静音挂起的），
+// 微信里在 WeixinJSBridgeReady 时解锁出声；普通浏览器则在用户第一次碰屏幕任何地方时解锁
+function unlockAudio() {
+  if (Music.el) Music.el.play().catch(() => {});
+  if (ac && ac.state !== "running") ac.resume().catch(() => {});
+}
+function wxUnlock() {
+  unlockAudio();
+  try { WeixinJSBridge.invoke("getNetworkType", {}, unlockAudio); } catch (e) {}
+}
+Music.start();
+if (window.WeixinJSBridge) wxUnlock();
+else document.addEventListener("WeixinJSBridgeReady", wxUnlock, false);
+["touchend", "pointerup", "click", "keydown"].forEach(ev => document.addEventListener(ev, unlockAudio, true));
+document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+</script>
+</body>
+</html>
